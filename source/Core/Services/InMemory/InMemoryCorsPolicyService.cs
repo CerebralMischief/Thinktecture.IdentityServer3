@@ -1,4 +1,7 @@
-﻿/*
+﻿using IdentityServer3.Core.Extensions;
+using IdentityServer3.Core.Logging;
+using IdentityServer3.Core.Models;
+/*
  * Copyright 2014, 2015 Dominick Baier, Brock Allen
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,16 +20,16 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Thinktecture.IdentityServer.Core.Extensions;
-using Thinktecture.IdentityServer.Core.Models;
 
-namespace Thinktecture.IdentityServer.Core.Services.InMemory
+namespace IdentityServer3.Core.Services.InMemory
 {
     /// <summary>
     /// CORS policy service that configures the allowed origins from a list of clients' redirect URLs.
     /// </summary>
     public class InMemoryCorsPolicyService : ICorsPolicyService
     {
+        private readonly static ILog Logger = LogProvider.GetCurrentClassLogger();
+        
         readonly IEnumerable<Client> clients;
 
         /// <summary>
@@ -51,6 +54,15 @@ namespace Thinktecture.IdentityServer.Core.Services.InMemory
                 select url.GetOrigin();
 
             var result = query.Contains(origin, StringComparer.OrdinalIgnoreCase);
+
+            if (result)
+            {
+                Logger.InfoFormat("Client list checked and origin: {0} is allowed", origin);
+            }
+            else
+            {
+                Logger.InfoFormat("Client list checked and origin: {0} is not allowed", origin);
+            }
             
             return Task.FromResult(result);
         }

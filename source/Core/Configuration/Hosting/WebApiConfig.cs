@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
+using Autofac;
+using Autofac.Integration.WebApi;
+using IdentityServer3.Core.Logging;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -22,20 +25,20 @@ using System.Web.Http;
 using System.Web.Http.Controllers;
 using System.Web.Http.Dispatcher;
 using System.Web.Http.ExceptionHandling;
-using Thinktecture.IdentityServer.Core.Logging;
 
-namespace Thinktecture.IdentityServer.Core.Configuration.Hosting
+namespace IdentityServer3.Core.Configuration.Hosting
 {
     internal static class WebApiConfig
     {
-        public static HttpConfiguration Configure(IdentityServerOptions options)
+        public static HttpConfiguration Configure(IdentityServerOptions options, ILifetimeScope container)
         {
             var config = new HttpConfiguration();
 
             config.MapHttpAttributeRoutes();
             config.SuppressDefaultHostAuthentication();
 
-            config.MessageHandlers.Insert(0, new KatanaDependencyResolver());
+            config.DependencyResolver = new AutofacWebApiDependencyResolver(container);
+
             config.Services.Add(typeof(IExceptionLogger), new LogProviderExceptionLogger());
             config.Services.Replace(typeof(IHttpControllerTypeResolver), new HttpControllerTypeResolver());
             config.Formatters.Remove(config.Formatters.XmlFormatter);
@@ -53,12 +56,22 @@ namespace Thinktecture.IdentityServer.Core.Configuration.Hosting
                 diag.TraceSource = liblog;                
             }
 
+            ConfigureRoutes(options, config);
+
             if (options.LoggingOptions.EnableHttpLogging)
             {
                 config.MessageHandlers.Add(new RequestResponseLogger());
             }
 
             return config;
+        }
+
+        private static void ConfigureRoutes(IdentityServerOptions options, HttpConfiguration config)
+        {
+            if (options.EnableWelcomePage)
+            {
+                config.Routes.MapHttpRoute(Constants.RouteNames.Welcome, Constants.RoutePaths.Welcome, new { controller = "Welcome", action = "Get" });
+            }
         }
 
         private class HttpControllerTypeResolver : IHttpControllerTypeResolver
@@ -73,5 +86,6 @@ namespace Thinktecture.IdentityServer.Core.Configuration.Hosting
                     .ToList();
             }
         }
+
     }
 }

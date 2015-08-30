@@ -14,19 +14,18 @@
  * limitations under the License.
  */
 
+using IdentityModel;
+using IdentityServer3.Core.Extensions;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
-using Thinktecture.IdentityModel;
-using Thinktecture.IdentityModel.Extensions;
-using Thinktecture.IdentityServer.Core.Extensions;
 
-namespace Thinktecture.IdentityServer.Core.Validation
+namespace IdentityServer3.Core.Validation
 {
     /// <summary>
     /// Models the result of custom grant validation.
     /// </summary>
-    public class CustomGrantValidationResult
+    public class CustomGrantValidationResult : ValidationResult
     {
         /// <summary>
         /// Gets or sets the principal which represents the result of the authentication.
@@ -37,20 +36,12 @@ namespace Thinktecture.IdentityServer.Core.Validation
         public ClaimsPrincipal Principal { get; set; }
 
         /// <summary>
-        /// Gets or sets the error message.
-        /// </summary>
-        /// <value>
-        /// The error message.
-        /// </value>
-        public string ErrorMessage { get; set; }
-
-        /// <summary>
         /// Initializes a new instance of the <see cref="CustomGrantValidationResult"/> class with an error message.
         /// </summary>
         /// <param name="errorMessage">The error message.</param>
         public CustomGrantValidationResult(string errorMessage)
         {
-            ErrorMessage = errorMessage;
+            Error = errorMessage;
         }
 
         /// <summary>
@@ -82,13 +73,15 @@ namespace Thinktecture.IdentityServer.Core.Validation
 
             if (claims != null && claims.Any())
             {
-                resultClaims.AddRange(claims.Where(x => !Constants.CustomGrantProtocolClaimTypes.Contains(x.Type)));
+                resultClaims.AddRange(claims.Where(x => !Constants.OidcProtocolClaimTypes.Contains(x.Type)));
             }
 
             var id = new ClaimsIdentity(authenticationMethod);
             id.AddClaims(resultClaims.Distinct(new ClaimComparer()));
 
             Principal = new ClaimsPrincipal(id);
+
+            IsError = false;
         }
     }
 }

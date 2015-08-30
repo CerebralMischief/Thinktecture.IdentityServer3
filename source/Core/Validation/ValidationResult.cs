@@ -14,20 +14,29 @@
  * limitations under the License.
  */
 
-namespace Thinktecture.IdentityServer.Core.Validation
+namespace IdentityServer3.Core.Validation
 {
     /// <summary>
-    /// Models the validation result of authorize and token requests.
+    /// Minimal validation result class (base-class for more complext validation results)
     /// </summary>
     public class ValidationResult
     {
         /// <summary>
-        /// Gets or sets a value indicating whether this instance is error.
+        /// Initializes a new instance of the <see cref="ValidationResult"/> class.
+        /// </summary>
+        public ValidationResult()
+        {
+            IsError = true;
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the validation was successful.
         /// </summary>
         /// <value>
-        ///   <c>true</c> if this instance is error; otherwise, <c>false</c>.
+        ///   <c>true</c> if the validation is failed; otherwise, <c>false</c>.
         /// </value>
         public bool IsError { get; set; }
+
         /// <summary>
         /// Gets or sets the error.
         /// </summary>
@@ -35,37 +44,13 @@ namespace Thinktecture.IdentityServer.Core.Validation
         /// The error.
         /// </value>
         public string Error { get; set; }
+
         /// <summary>
-        /// Gets or sets the type of the error.
+        /// Gets or sets the error description.
         /// </summary>
         /// <value>
-        /// The type of the error.
+        /// The error description.
         /// </value>
-        public ErrorTypes ErrorType { get; set; }
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ValidationResult"/> class.
-        /// </summary>
-        public ValidationResult()
-        {
-            IsError = true;
-            ErrorType = ErrorTypes.User;
-        }
-    }
-
-    /// <summary>
-    /// Indicates if a <see cref="ValidationResult"/> is an error to be displayed to the user or returned to the client.
-    /// </summary>
-    public enum ErrorTypes
-    {
-        /// <summary>
-        /// client error
-        /// </summary>
-        Client = 0,
-
-        /// <summary>
-        /// user error
-        /// </summary>
-        User = 1
+        public string ErrorDescription { get; set; }
     }
 }

@@ -15,14 +15,14 @@
  */
 
 using FluentAssertions;
+using IdentityServer3.Core;
+using IdentityServer3.Core.Configuration;
+using IdentityServer3.Core.Validation;
 using System.Collections.Specialized;
 using System.Threading.Tasks;
-using Thinktecture.IdentityServer.Core;
-using Thinktecture.IdentityServer.Core.Configuration;
-using Thinktecture.IdentityServer.Core.Validation;
 using Xunit;
 
-namespace Thinktecture.IdentityServer.Tests.Validation.AuthorizeRequest
+namespace IdentityServer3.Tests.Validation.AuthorizeRequest
 {
     
     public class Authorize_ClientValidation_Token
@@ -40,13 +40,11 @@ namespace Thinktecture.IdentityServer.Tests.Validation.AuthorizeRequest
             parameters.Add(Constants.AuthorizeRequest.ResponseType, Constants.ResponseTypes.Token);
 
             var validator = Factory.CreateAuthorizeRequestValidator();
-            var protocolResult = validator.ValidateProtocol(parameters);
-            protocolResult.IsError.Should().Be(false);
-
-            var clientResult = await validator.ValidateClientAsync();
-            clientResult.IsError.Should().BeTrue();
-            clientResult.ErrorType.Should().Be(ErrorTypes.Client);
-            clientResult.Error.Should().Be(Constants.AuthorizeErrors.InvalidScope);
+            var result = await validator.ValidateAsync(parameters);
+            
+            result.IsError.Should().BeTrue();
+            result.ErrorType.Should().Be(ErrorTypes.Client);
+            result.Error.Should().Be(Constants.AuthorizeErrors.InvalidScope);
         }
     }
 }

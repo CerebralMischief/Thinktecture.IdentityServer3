@@ -15,6 +15,13 @@
  */
 
 using FluentAssertions;
+using IdentityServer3.Core;
+using IdentityServer3.Core.Configuration;
+using IdentityServer3.Core.Configuration.Hosting;
+using IdentityServer3.Core.Models;
+using IdentityServer3.Core.Services;
+using IdentityServer3.Core.Services.InMemory;
+using IdentityServer3.Core.ViewModels;
 using Microsoft.Owin;
 using Microsoft.Owin.Security.DataHandler;
 using Microsoft.Owin.Security.Google;
@@ -29,15 +36,8 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Formatting;
 using System.Text;
-using Thinktecture.IdentityServer.Core;
-using Thinktecture.IdentityServer.Core.Configuration;
-using Thinktecture.IdentityServer.Core.Configuration.Hosting;
-using Thinktecture.IdentityServer.Core.Models;
-using Thinktecture.IdentityServer.Core.Services;
-using Thinktecture.IdentityServer.Core.Services.InMemory;
-using Thinktecture.IdentityServer.Core.ViewModels;
 
-namespace Thinktecture.IdentityServer.Tests.Endpoints
+namespace IdentityServer3.Tests.Endpoints
 {
     public class IdSvrHostTestBase
     {
@@ -59,7 +59,7 @@ namespace Thinktecture.IdentityServer.Tests.Endpoints
         protected GoogleOAuth2AuthenticationOptions google;
         protected GoogleOAuth2AuthenticationOptions google2;
         protected GoogleOAuth2AuthenticationOptions hiddenGoogle;
-        
+
         public IdSvrHostTestBase()
         {
             Init();
@@ -118,7 +118,7 @@ namespace Thinktecture.IdentityServer.Tests.Endpoints
                 ClientSecret = "bar"
             };
             app.UseGoogleAuthentication(google);
-            
+
             google2 = new GoogleOAuth2AuthenticationOptions
             {
                 Caption = "Google2",
@@ -128,7 +128,7 @@ namespace Thinktecture.IdentityServer.Tests.Endpoints
                 ClientSecret = "g2"
             };
             app.UseGoogleAuthentication(google2);
-            
+
             hiddenGoogle = new GoogleOAuth2AuthenticationOptions
             {
                 AuthenticationType = "HiddenGoogle",
@@ -200,7 +200,7 @@ namespace Thinktecture.IdentityServer.Tests.Endpoints
         protected string ToFormBody(NameValueCollection coll)
         {
             var sb = new StringBuilder();
-            foreach(var item in coll.AllKeys)
+            foreach (var item in coll.AllKeys)
             {
                 if (sb.Length > 0)
                 {
@@ -233,7 +233,7 @@ namespace Thinktecture.IdentityServer.Tests.Endpoints
         {
             return client.PostAsJsonAsync(Url(path), value).Result;
         }
-        
+
         protected HttpResponseMessage Put<T>(string path, T value)
         {
             return client.PutAsJsonAsync(Url(path), value).Result;
@@ -247,7 +247,13 @@ namespace Thinktecture.IdentityServer.Tests.Endpoints
         protected string WriteMessageToCookie<T>(T msg)
             where T : Message
         {
-            var request_headers = new Dictionary<string, string[]>();
+            var cookieStates = client.DefaultRequestHeaders.GetCookies().SelectMany(c => c.Cookies);
+            var requestCookies = cookieStates.Select(c => c.ToString()).ToArray();
+            var request_headers = new Dictionary<string, string[]>
+            {
+                {"Cookie", requestCookies}
+            };
+
             var response_headers = new Dictionary<string, string[]>();
             var env = new Dictionary<string, object>()
             {

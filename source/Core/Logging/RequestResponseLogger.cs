@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
+using IdentityServer3.Core.Extensions;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Thinktecture.IdentityServer.Core.Logging
+namespace IdentityServer3.Core.Logging
 {
     internal class RequestResponseLogger : DelegatingHandler
     {
@@ -31,7 +32,7 @@ namespace Thinktecture.IdentityServer.Core.Logging
                 Method = request.Method,
                 Url = request.RequestUri.AbsoluteUri,
                 Headers = request.Headers,
-                Body = await request.Content.ReadAsStringAsync()
+                Body = await request.GetOwinContext().Request.ReadBodyAsStringAsync()
             };
 
             Logger.DebugFormat("HTTP Request\n{0}", LogSerializer.Serialize(reqLog));

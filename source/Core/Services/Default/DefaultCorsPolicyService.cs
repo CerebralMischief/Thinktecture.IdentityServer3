@@ -1,4 +1,5 @@
-﻿/*
+﻿using IdentityServer3.Core.Logging;
+/*
  * Copyright 2014, 2015 Dominick Baier, Brock Allen
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,15 +18,16 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Thinktecture.IdentityServer.Core.Configuration;
 
-namespace Thinktecture.IdentityServer.Core.Services.Default
+namespace IdentityServer3.Core.Services.Default
 {
     /// <summary>
     /// Default CORS policy service.
     /// </summary>
     public class DefaultCorsPolicyService : ICorsPolicyService
     {
+        private readonly static ILog Logger = LogProvider.GetCurrentClassLogger();
+
         /// <summary>
         /// Initializes a new instance of the <see cref="DefaultCorsPolicyService"/> class.
         /// </summary>
@@ -50,45 +52,35 @@ namespace Thinktecture.IdentityServer.Core.Services.Default
         /// </value>
         public bool AllowAll { get; set; }
 
-        readonly Func<string, Task<bool>> policyCallback;
-        
-        internal DefaultCorsPolicyService(CorsPolicy policy)
-        {
-            if (policy == null) throw new ArgumentNullException("policy");
-            
-            AllowedOrigins = policy.AllowedOrigins;
-            policyCallback = policy.PolicyCallback;
-        }
-
         /// <summary>
         /// Determines whether the origin allowed.
         /// </summary>
         /// <param name="origin">The origin.</param>
         /// <returns></returns>
-        public async Task<bool> IsOriginAllowedAsync(string origin)
+        public Task<bool> IsOriginAllowedAsync(string origin)
         {
             if (AllowAll)
             {
-                return true;
+                Logger.InfoFormat("AllowAll true, so origin: {0} is allowed", origin);
+                return Task.FromResult(true);
             }
 
             if (AllowedOrigins != null)
             {
                 if (AllowedOrigins.Contains(origin, StringComparer.OrdinalIgnoreCase))
                 {
-                    return true;
+                    Logger.InfoFormat("AllowedOrigins configured and origin {0} is allowed", origin);
+                    return Task.FromResult(true);
+                }
+                else
+                {
+                    Logger.InfoFormat("AllowedOrigins configured and origin {0} is not allowed", origin);
                 }
             }
 
-            if (policyCallback != null)
-            {
-                if (await policyCallback(origin))
-                {
-                    return true;
-                }
-            }
-            
-            return false;
+            Logger.InfoFormat("Exiting; origin {0} is not allowed", origin);
+
+            return Task.FromResult(false);
         }
     }
 }

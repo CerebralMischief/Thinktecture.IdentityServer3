@@ -19,7 +19,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 
-namespace Thinktecture.IdentityServer.Core.Models
+namespace IdentityServer3.Core.Models
 {
     /// <summary>
     /// Models the identity of a user authenticating from an external identity provider.
@@ -51,7 +51,13 @@ namespace Thinktecture.IdentityServer.Core.Models
         /// </value>
         public IEnumerable<Claim> Claims { get; set; }
 
-        internal static ExternalIdentity FromClaims(IEnumerable<Claim> claims)
+        /// <summary>
+        /// Creates an ExternalIdentity and determines the Provider and ProviderId from the list of claims.
+        /// </summary>
+        /// <param name="claims">The claims.</param>
+        /// <returns></returns>
+        /// <exception cref="System.ArgumentNullException">claims</exception>
+        public static ExternalIdentity FromClaims(IEnumerable<Claim> claims)
         {
             if (claims == null) throw new ArgumentNullException("claims");
 

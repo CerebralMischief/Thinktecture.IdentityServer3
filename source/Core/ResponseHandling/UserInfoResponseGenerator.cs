@@ -14,23 +14,19 @@
  * limitations under the License.
  */
 
+using IdentityModel;
+using IdentityServer3.Core.Extensions;
+using IdentityServer3.Core.Logging;
+using IdentityServer3.Core.Models;
+using IdentityServer3.Core.Services;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using Thinktecture.IdentityModel;
-using Thinktecture.IdentityServer.Core.Extensions;
-using Thinktecture.IdentityServer.Core.Logging;
-using Thinktecture.IdentityServer.Core.Models;
-using Thinktecture.IdentityServer.Core.Services;
 
-#pragma warning disable 1591
-
-namespace Thinktecture.IdentityServer.Core.ResponseHandling
+namespace IdentityServer3.Core.ResponseHandling
 {
-    [EditorBrowsable(EditorBrowsableState.Never)]
-    public class UserInfoResponseGenerator
+    internal class UserInfoResponseGenerator
     {
         private readonly static ILog Logger = LogProvider.GetCurrentClassLogger();
         private readonly IUserService _users;
@@ -42,16 +38,40 @@ namespace Thinktecture.IdentityServer.Core.ResponseHandling
             _scopes = scopes;
         }
 
-        public async Task<Dictionary<string, object>> ProcessAsync(string subject, IEnumerable<string> scopes)
+        public async Task<Dictionary<string, object>> ProcessAsync(string subject, IEnumerable<string> scopes, Client client)
         {
             Logger.Info("Creating userinfo response");
             var profileData = new Dictionary<string, object>();
             
             var requestedClaimTypes = await GetRequestedClaimTypesAsync(scopes);
-            Logger.InfoFormat("Requested claim types: {0}", requestedClaimTypes.ToSpaceSeparatedString());
-
             var principal = Principal.Create("UserInfo", new Claim("sub", subject));
-            var profileClaims = await _users.GetProfileDataAsync(principal, requestedClaimTypes);
+
+            IEnumerable<Claim> profileClaims;
+            if (requestedClaimTypes.IncludeAllClaims)
+            {
+                Logger.InfoFormat("Requested claim types: all");
+
+                var context = new ProfileDataRequestContext(
+                    principal, 
+                    client, 
+                    Constants.ProfileDataCallers.UserInfoEndpoint);
+
+                await _users.GetProfileDataAsync(context);
+                profileClaims = context.IssuedClaims;
+            }
+            else
+            {
+                Logger.InfoFormat("Requested claim types: {0}", requestedClaimTypes.ClaimTypes.ToSpaceSeparatedString());
+
+                var context = new ProfileDataRequestContext(
+                    principal,
+                    client,
+                    Constants.ProfileDataCallers.UserInfoEndpoint,
+                    requestedClaimTypes.ClaimTypes);
+
+                await _users.GetProfileDataAsync(context);
+                profileClaims = context.IssuedClaims;
+            }
             
             if (profileClaims != null)
             {
@@ -66,11 +86,11 @@ namespace Thinktecture.IdentityServer.Core.ResponseHandling
             return profileData;
         }
 
-        public async Task<IEnumerable<string>> GetRequestedClaimTypesAsync(IEnumerable<string> scopes)
+        public async Task<RequestedClaimTypes> GetRequestedClaimTypesAsync(IEnumerable<string> scopes)
         {
             if (scopes == null || !scopes.Any())
             {
-                return Enumerable.Empty<string>();
+                return new RequestedClaimTypes();
             }
 
             var scopeString = string.Join(" ", scopes);
@@ -87,12 +107,20 @@ namespace Thinktecture.IdentityServer.Core.ResponseHandling
                 {
                     if (scopeDetail.Type == ScopeType.Identity)
                     {
+                        if (scopeDetail.IncludeAllClaimsForUser)
+                        {
+                            return new RequestedClaimTypes
+                            {
+                                IncludeAllClaims = true
+                            };
+                        }
+
                         scopeClaims.AddRange(scopeDetail.Claims.Select(c => c.Name));
                     }
                 }
             }
 
-            return scopeClaims;
+            return new RequestedClaimTypes(scopeClaims);
         }
     }
 }

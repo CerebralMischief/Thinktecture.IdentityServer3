@@ -15,7 +15,9 @@
  */
 
 using FluentAssertions;
+using IdentityServer3.Core.Extensions;
 using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -24,7 +26,7 @@ using System.Net.Http.Headers;
 using System.Text.RegularExpressions;
 using System.Web;
 
-namespace Thinktecture.IdentityServer.Tests.Endpoints
+namespace IdentityServer3.Tests.Endpoints
 {
     static class Extensions
     {
@@ -32,15 +34,19 @@ namespace Thinktecture.IdentityServer.Tests.Endpoints
         {
             foreach (var c in cookies)
             {
-                client.DefaultRequestHeaders.Add("Cookie", c);
+                if (c.LooksLikeACookieDeletion())
+                {
+                    client.RemoveCookieByName(c);
+                }
+                else
+                {
+                    client.DefaultRequestHeaders.Add("Cookie", c);
+                }
             }
         }
         public static void SetCookies(this HttpClient client, IEnumerable<CookieState> cookies)
         {
-            foreach (var c in cookies)
-            {
-                client.DefaultRequestHeaders.Add("Cookie", c.ToString());
-            }
+            client.SetCookies(cookies.Select(c => c.ToString()));
         }
 
         public static IEnumerable<CookieState> GetCookies(this HttpResponseMessage resp)
@@ -104,6 +110,43 @@ namespace Thinktecture.IdentityServer.Tests.Endpoints
             resp.IsSuccessStatusCode.Should().BeTrue();
             var html = resp.Content.ReadAsStringAsync().Result;
             return GetModel<T>(html);
+        }
+
+        public static T GetJson<T>(this HttpResponseMessage resp, Boolean successExpected = true)
+        {
+            if (successExpected)
+            {
+                resp.IsSuccessStatusCode.Should().BeTrue();
+            }
+
+            var json = resp.Content.ReadAsStringAsync().Result;
+            return JsonConvert.DeserializeObject<T>(json);
+        }
+
+        private static void RemoveCookieByName(this HttpClient client, string cookieString)
+        {
+            Conformance.Extensions.RemoveCookie(client, cookieString.Split('=').First());
+        }
+
+        private static bool LooksLikeACookieDeletion(this string cookieString)
+        {
+            if (!cookieString.Contains("expires"))
+            {
+                return false;
+            }
+
+            var parts = cookieString
+                .Split(';')
+                .Select(s => s.Trim())
+                .ToDictionary(s => s.Split('=').First(), s => s.Split('=').Last());
+
+            DateTime expiry;
+            if (DateTime.TryParse(parts["expires"], out expiry))
+            {
+                return parts.First().Value == "." && expiry < DateTimeHelper.UtcNow;
+            }
+
+            return false;
         }
     }
 }

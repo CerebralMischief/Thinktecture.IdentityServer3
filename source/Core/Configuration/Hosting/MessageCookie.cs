@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+using IdentityModel;
+using IdentityServer3.Core.Extensions;
+using IdentityServer3.Core.Logging;
+using IdentityServer3.Core.Models;
 using Microsoft.Owin;
 using Newtonsoft.Json;
 using System;
@@ -21,14 +25,10 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Security.Cryptography;
-using Thinktecture.IdentityModel;
-using Thinktecture.IdentityServer.Core.Extensions;
-using Thinktecture.IdentityServer.Core.Logging;
-using Thinktecture.IdentityServer.Core.Models;
 
 #pragma warning disable 1591
 
-namespace Thinktecture.IdentityServer.Core.Configuration.Hosting
+namespace IdentityServer3.Core.Configuration.Hosting
 {
     [EditorBrowsable(EditorBrowsableState.Never)]
     public class MessageCookie<TMessage>
@@ -218,7 +218,9 @@ namespace Thinktecture.IdentityServer.Core.Configuration.Hosting
         private void ClearOverflow()
         {
             var names = GetCookieNames();
-            if (names.Count() > Constants.SignInMessageThreshold)
+            var toKeep = options.AuthenticationOptions.SignInMessageThreshold;
+
+            if (names.Count() >= toKeep)
             {
                 var rankedCookieNames =
                     from name in names
@@ -226,7 +228,7 @@ namespace Thinktecture.IdentityServer.Core.Configuration.Hosting
                     orderby rank descending
                     select name;
 
-                var purge = rankedCookieNames.Skip(Constants.SignInMessageThreshold);
+                var purge = rankedCookieNames.Skip(Math.Max(0, toKeep - 1));
                 foreach (var name in purge)
                 {
                     ClearByCookieName(name);
